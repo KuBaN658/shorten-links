@@ -1,47 +1,25 @@
-import uuid
-from typing import Optional
+from datetime import datetime
 
-from loguru import logger
-from fastapi import Depends, Request
-from fastapi_users import BaseUserManager, FastAPIUsers, UUIDIDMixin, models
-from fastapi_users.authentication import (
-    AuthenticationBackend,
-    BearerTransport,
-    JWTStrategy,
-)
-from fastapi_users.db import SQLAlchemyUserDatabase
+from fastapi import Depends
+from fastapi_users.db import SQLAlchemyBaseUserTableUUID, SQLAlchemyUserDatabase
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.declarative import DeclarativeMeta, declarative_base
+from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import func, DateTime
 
-from src.auth.db import User, get_user_db
-from src.config import settings
-
-logger.add("logs/auth.log", rotation="10 MB", compression="zip")
+from src.database import get_async_session
 
 
-class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
-    reset_password_token_secret = settings.access_token.reset_password_token_secret
-    verification_token_secret = settings.access_token.verification_token_secret
-
-    async def on_after_register(self, user: User, request: Optional[Request] = None):
-        logger.info("User %s has registered." % user.id)
+Base: DeclarativeMeta = declarative_base()
 
 
-async def get_user_manager(user_db: SQLAlchemyUserDatabase = Depends(get_user_db)):
-    yield UserManager(user_db)
+class User(SQLAlchemyBaseUserTableUUID, Base):
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        server_default=func.now(),
+        nullable=False,
+    )
 
 
-bearer_transport = BearerTransport(tokenUrl="auth/jwt/login")
-
-
-def get_jwt_strategy() -> JWTStrategy[models.UP, models.ID]:
-    return JWTStrategy(secret=settings.access_token.verification_token_secret, lifetime_seconds=3600,)
-
-
-auth_backend = AuthenticationBackend(
-    name="jwt",
-    transport=bearer_transport,
-    get_strategy=get_jwt_strategy,
-)
-
-fastapi_users = FastAPIUsers[User, uuid.UUID](get_user_manager, [auth_backend])
-
-current_active_user = fastapi_users.current_user(active=True)
+async def get_user_db(session: AsyncSession = Depends(get_async_session)):
+    yield SQLAlchemyUserDatabase(session, User)

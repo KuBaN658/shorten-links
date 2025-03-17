@@ -1,17 +1,23 @@
 from fastapi import FastAPI, Depends
 
-from src.auth.users import auth_backend, current_active_user, fastapi_users
+from src.auth.user_manager import (
+    auth_backend,
+    current_active_user,
+    fastapi_users_router,
+)
 from src.auth.schemas import UserCreate, UserRead
-from src.auth.db import User
+from src.auth.users import User
 
 
 app = FastAPI()
 
 app.include_router(
-    fastapi_users.get_auth_router(auth_backend), prefix="/auth/jwt", tags=["auth"]
+    fastapi_users_router.get_auth_router(auth_backend),
+    prefix="/auth/jwt",
+    tags=["auth"],
 )
 app.include_router(
-    fastapi_users.get_register_router(UserRead, UserCreate),
+    fastapi_users_router.get_register_router(UserRead, UserCreate),
     prefix="/auth",
     tags=["auth"],
 )

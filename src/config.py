@@ -27,4 +27,5 @@ class Settings(BaseSettings):
         env_prefix="APP_CONFIG__",
     )
 
+
 settings = Settings()
