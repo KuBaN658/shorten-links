@@ -4,43 +4,15 @@ from typing import Optional
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import func, DateTime, String, Boolean, ForeignKey, Text
 from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
+from fastapi_users.db import SQLAlchemyBaseUserTableUUID
 
 Base: DeclarativeMeta = declarative_base()
 
 
-class UserService(Base):
-    __tablename__ = "users_service"
-    id: Mapped[str] = mapped_column(
-        String,
-        primary_key=True,
-        index=True,
-    )
-    email: Mapped[str] = mapped_column(
-        String,
-        unique=True,
-        nullable=False,
-    )
-    hashed_password: Mapped[str] = mapped_column(
-        String,
-        nullable=False,
-    )
-    registered_at: Mapped[datetime] = mapped_column(
+class User(SQLAlchemyBaseUserTableUUID, Base):
+    created_at: Mapped[datetime] = mapped_column(
         DateTime,
         server_default=func.now(),
-    )
-    is_active: Mapped[bool] = mapped_column(
-        Boolean,
-        default=True,
-        nullable=False,
-    )
-    is_superuser: Mapped[bool] = mapped_column(
-        Boolean,
-        default=True,
-        nullable=False,
-    )
-    is_verified: Mapped[bool] = mapped_column(
-        Boolean,
-        default=True,
         nullable=False,
     )
 
@@ -68,7 +40,7 @@ class ShortenLink(Base):
         nullable=False,
     )
     user_id: Mapped[Optional[str]] = mapped_column( 
-        ForeignKey("users_service.id", ondelete="SET NULL"),
+        ForeignKey("user.id", ondelete="SET NULL"),
         nullable=True,
     )
     clicks: Mapped[int] = mapped_column(default=0)
@@ -105,7 +77,7 @@ class OldShortenLink(Base):
         nullable=False,
     )
     user_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("users_service.id", ondelete="SET NULL"),
+        ForeignKey("user.id", ondelete="SET NULL"),
         nullable=True,
     )
     clicks: Mapped[int] = mapped_column(nullable=True)
