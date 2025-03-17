@@ -6,7 +6,7 @@ from src.auth.user_manager import (
     fastapi_users_router,
 )
 from src.auth.schemas import UserCreate, UserRead
-from src.auth.users import User
+from src.auth.models import User
 
 
 app = FastAPI()
