@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.models import ShortenLink
 from src.database import get_async_session
 from src.shorten_links.schemas import ShortenLinkCreate
-from src.auth.user_manager import current_active_user
+from src.auth.user_manager import current_active_user, current_active_user_optional
 from src.models import User
 from src.shorten_links.utils import generate_alias
 
@@ -19,7 +19,7 @@ router = APIRouter()
 async def create_shorten_link(
     shorten_link: ShortenLinkCreate,
     response: Response,
-    current_user: Optional[User] = Depends(current_active_user),
+    current_user: Optional[User] = Depends(current_active_user_optional),
     session: AsyncSession = Depends(get_async_session),
 ):
     
@@ -63,7 +63,6 @@ async def create_shorten_link(
 @router.get("/{short_code}")
 async def redirect_to_original_url(
     short_code: str,
-    response: Response,
     session: AsyncSession = Depends(get_async_session),
 ):
     query = select(ShortenLink).where(ShortenLink.alias == short_code)
@@ -80,8 +79,38 @@ async def redirect_to_original_url(
     last_clicked_at = last_clicked_at.replace(tzinfo=None)
     link.last_clicked_at = last_clicked_at
     await session.commit()
-    response.status_code = status.HTTP_307_TEMPORARY_REDIRECT
     return RedirectResponse(link.url, status_code=307)
+
+
+@router.delete("/delete/{short_code}")
+async def delete_shorten_link(
+    short_code: str,
+    response: Response,
+    current_user: User = Depends(current_active_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    query = select(ShortenLink).where(
+        ShortenLink.alias == short_code
+    )
+    result = await session.execute(query)
+    link = result.scalar_one_or_none()
+    if link is None:
+        raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Link not found",
+            )
+    elif link.user_id != current_user.id:
+        raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Permission denied",
+            )
+    else:
+        await session.delete(link)
+        await session.commit()
+        return Response(
+            status_code=status.HTTP_204_NO_CONTENT,
+        )
+    
 
 async def is_alias_exists(session: AsyncSession, alias: str) -> bool:
     # Выполняем запрос для проверки существования alias
