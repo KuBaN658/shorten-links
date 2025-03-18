@@ -12,6 +12,7 @@ from src.shorten_links.schemas import ShortenLinkCreate
 from src.auth.user_manager import current_active_user, current_active_user_optional
 from src.models import User
 from src.shorten_links.utils import generate_alias
+from src.shorten_links.schemas import Stats
 
 router = APIRouter()
 
@@ -111,6 +112,34 @@ async def delete_shorten_link(
             status_code=status.HTTP_204_NO_CONTENT,
         )
     
+@router.get("/{short_code}/stats")
+async def get_shorten_link_stats(
+    short_code: str,
+    current_user: User = Depends(current_active_user),
+    session: AsyncSession = Depends(get_async_session)
+):
+    query = select(ShortenLink).where(
+        ShortenLink.alias == short_code
+    )
+    result = await session.execute(query)
+    link = result.scalar_one_or_none()
+    if link is None:
+        raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Link not found",
+            )
+    elif link.user_id != current_user.id:
+        raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Permission denied",
+            )
+    else:
+        return Stats(
+            original_url=link.url,
+            created_at=link.created_at,
+            clicks=link.clicks,
+            last_clicked_at=link.last_clicked_at
+        )
 
 async def is_alias_exists(session: AsyncSession, alias: str) -> bool:
     # Выполняем запрос для проверки существования alias
