@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Optional, List
 
 from fastapi import APIRouter, HTTPException, status, Depends, Response
 from fastapi.responses import RedirectResponse
@@ -23,7 +23,11 @@ async def create_shorten_link(
     current_user: Optional[User] = Depends(current_active_user_optional),
     session: AsyncSession = Depends(get_async_session),
 ):
-    
+    if shorten_link.alias == 'search':
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f'Alias `search` is not allowed',
+            )
     if shorten_link.alias is None:
         alias = generate_alias(shorten_link.url)
         while await is_alias_exists(session, shorten_link.alias):
@@ -61,11 +65,24 @@ async def create_shorten_link(
     }
 
 
+@router.get("/search")
+async def search_shorten_links(
+    original_url: str,
+    session: AsyncSession = Depends(get_async_session),
+):
+    if not original_url.startswith('http'):
+        original_url = "https://" + original_url
+    print(original_url)
+    query = select(ShortenLink).where(ShortenLink.url == original_url)
+    result = await session.execute(query)
+    return result.scalars().all()
+
+
 @router.get("/{short_code}")
 async def redirect_to_original_url(
     short_code: str,
     session: AsyncSession = Depends(get_async_session),
-):
+):  
     query = select(ShortenLink).where(ShortenLink.alias == short_code)
     result = await session.execute(query)
     link = result.scalar_one_or_none()
@@ -140,6 +157,7 @@ async def get_shorten_link_stats(
             clicks=link.clicks,
             last_clicked_at=link.last_clicked_at
         )
+    
 
 async def is_alias_exists(session: AsyncSession, alias: str) -> bool:
     # Выполняем запрос для проверки существования alias
