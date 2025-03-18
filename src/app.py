@@ -7,6 +7,7 @@ from src.auth.user_manager import (
 )
 from src.auth.schemas import UserCreate, UserRead
 from src.auth.models import User
+from src.shorten_links.router import router
 
 
 app = FastAPI()
@@ -20,6 +21,12 @@ app.include_router(
     fastapi_users_router.get_register_router(UserRead, UserCreate),
     prefix="/auth",
     tags=["auth"],
+)
+
+app.include_router(
+    router,
+    prefix="/links",
+    tags=["links"],
 )
 
 
