@@ -29,7 +29,7 @@ class ShortenLink(Base):
         Text,
         nullable=False,
     )
-    shorten_link: Mapped[str] = mapped_column(
+    alias: Mapped[str] = mapped_column(
         String(255),
         unique=True,
         nullable=False,
@@ -67,7 +67,7 @@ class OldShortenLink(Base):
         Text,
         nullable=False,
     )
-    shorten_link: Mapped[str] = mapped_column(
+    alias: Mapped[str] = mapped_column(
         String(255),
         unique=True,
         nullable=False,
