@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import func, DateTime, String, Boolean, ForeignKey, Text
+from sqlalchemy import func, DateTime, String, ForeignKey, Text
 from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
 from fastapi_users.db import SQLAlchemyBaseUserTableUUID
 
@@ -39,7 +39,7 @@ class ShortenLink(Base):
         server_default=func.now(),
         nullable=False,
     )
-    user_id: Mapped[Optional[str]] = mapped_column( 
+    user_id: Mapped[Optional[str]] = mapped_column(
         ForeignKey("user.id", ondelete="SET NULL"),
         nullable=True,
     )

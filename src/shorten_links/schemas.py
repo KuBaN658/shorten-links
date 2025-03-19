@@ -10,6 +10,10 @@ class ShortenLinkCreate(BaseModel):
     alias: Optional[str] = None
 
 
+class UrlUpdate(BaseModel):
+    url: str
+
+
 class Stats(BaseModel):
     original_url: str
     created_at: datetime
