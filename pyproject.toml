@@ -12,6 +12,7 @@ asyncpg = "^0.30.0"
 alembic = "^1.15.1"
 fastapi-users = {extras = ["sqlalchemy"], version = "^14.0.1"}
 loguru = "^0.7.3"
+fastapi-cache2 = {extras = ["redis"], version = "^0.2.2"}
 
 
 [tool.poetry.group.dev.dependencies]

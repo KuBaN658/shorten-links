@@ -54,6 +54,11 @@ class ShortenLink(Base):
         nullable=False,
     )
 
+    project: Mapped[Optional[str]] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+
 
 class OldShortenLink(Base):
     __tablename__ = "old_shorten_links"
@@ -91,4 +96,9 @@ class OldShortenLink(Base):
         DateTime,
         server_default=func.now(),
         nullable=False,
+    )
+
+    project: Mapped[Optional[str]] = mapped_column(
+        String(255),
+        nullable=True,
     )

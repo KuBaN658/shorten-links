@@ -8,6 +8,7 @@ class ShortenLinkCreate(BaseModel):
     lifetime_minutes: int = 60
     description: str
     alias: Optional[str] = None
+    project: Optional[str] = None
 
 
 class UrlUpdate(BaseModel):

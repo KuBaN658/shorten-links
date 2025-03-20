@@ -1,10 +1,12 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+from time import sleep
 
 from fastapi import APIRouter, HTTPException, status, Depends, Response
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi_cache.decorator import cache
 
 from src.models import ShortenLink
 from src.database import get_async_session
@@ -54,6 +56,7 @@ async def create_shorten_link(
         alias=shorten_link.alias,
         expires_at=expires_at,
         user_id=user_id,
+        project=shorten_link.project,
     )
     session.add(new_shorten_link)
     await session.commit()
@@ -79,10 +82,12 @@ async def search_shorten_links(
 
 
 @router.get("/{short_code}")
+@cache(expire=60)
 async def redirect_to_original_url(
     short_code: str,
     session: AsyncSession = Depends(get_async_session),
-):
+):  
+    sleep(5)
     query = select(ShortenLink).where(ShortenLink.alias == short_code)
     result = await session.execute(query)
     link = result.scalar_one_or_none()
