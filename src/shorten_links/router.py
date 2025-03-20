@@ -15,6 +15,7 @@ from src.auth.user_manager import current_active_user, current_active_user_optio
 from src.models import User
 from src.shorten_links.utils import generate_alias
 from src.shorten_links.schemas import Stats
+from src.shorten_links.utils import get_link_by_short_code
 
 router = APIRouter()
 
@@ -33,12 +34,12 @@ async def create_shorten_link(
         )
     if shorten_link.alias is None:
         alias = generate_alias(shorten_link.url)
-        while await is_alias_exists(session, shorten_link.alias):
+        while await get_link_by_short_code(session, shorten_link.alias):
             alias = generate_alias
         shorten_link.alias = alias
 
     else:
-        if await is_alias_exists(session, shorten_link.alias):
+        if await get_link_by_short_code(session, shorten_link.alias):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Alias: `{shorten_link.alias}` already exists",
@@ -69,6 +70,7 @@ async def create_shorten_link(
 
 
 @router.get("/search")
+@cache(expire=60)
 async def search_shorten_links(
     original_url: str,
     session: AsyncSession = Depends(get_async_session),
@@ -86,9 +88,7 @@ async def redirect_to_original_url(
     short_code: str,
     session: AsyncSession = Depends(get_async_session),
 ):  
-    query = select(ShortenLink).where(ShortenLink.alias == short_code)
-    result = await session.execute(query)
-    link = result.scalar_one_or_none()
+    link = await get_link_by_short_code(session, short_code)
     if link is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -110,9 +110,7 @@ async def update_shorten_link(
     current_user: User = Depends(current_active_user),
     session: AsyncSession = Depends(get_async_session),
 ):
-    query = select(ShortenLink).where(ShortenLink.alias == short_code)
-    result = await session.execute(query)
-    link = result.scalar_one_or_none()
+    link = await get_link_by_short_code(session, short_code)
     if link is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -139,9 +137,7 @@ async def delete_shorten_link(
     current_user: User = Depends(current_active_user),
     session: AsyncSession = Depends(get_async_session),
 ):
-    query = select(ShortenLink).where(ShortenLink.alias == short_code)
-    result = await session.execute(query)
-    link = result.scalar_one_or_none()
+    link = await get_link_by_short_code(session, short_code)
     if link is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -167,10 +163,7 @@ async def get_shorten_link_stats(
     current_user: User = Depends(current_active_user),
     session: AsyncSession = Depends(get_async_session),
 ):
-    sleep(5)
-    query = select(ShortenLink).where(ShortenLink.alias == short_code)
-    result = await session.execute(query)
-    link = result.scalar_one_or_none()
+    link = await get_link_by_short_code(session, short_code)
     if link is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -211,10 +204,3 @@ async def get_shorten_link_stats(
             detail=f"Project not found",
         )
     return links
-
-
-async def is_alias_exists(session: AsyncSession, alias: str) -> bool:
-    # Выполняем запрос для проверки существования alias
-    query = select(ShortenLink).where(ShortenLink.alias == alias)
-    result = await session.execute(query)
-    return result.scalar() is not None  # Если запись найдена, возвращаем True
