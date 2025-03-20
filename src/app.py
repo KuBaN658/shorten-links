@@ -17,10 +17,15 @@ from src.shorten_links.router import router
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    redis = aioredis.from_url(
-        url="redis://localhost", encoding="utf-8", decode_responses=True
+    cache = aioredis.Redis(
+        host="localhost", 
+        port=6379,
+        encoding="utf-8", 
+        decode_responses=True,
+        db=0
     )
-    FastAPICache.init(RedisBackend(redis), prefix="fastapi-cache")
+    FastAPICache.init(RedisBackend(cache), prefix="fastapi-cache")
+
     yield
 
 

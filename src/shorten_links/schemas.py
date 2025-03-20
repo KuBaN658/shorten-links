@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 class ShortenLinkCreate(BaseModel):
     url: str
-    lifetime_minutes: int = 60
+    lifetime_hours: int = 24
     description: str
     alias: Optional[str] = None
     project: Optional[str] = None
