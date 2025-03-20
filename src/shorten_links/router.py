@@ -4,7 +4,7 @@ from time import sleep
 
 from fastapi import APIRouter, HTTPException, status, Depends, Response
 from fastapi.responses import RedirectResponse
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi_cache.decorator import cache
 
@@ -82,12 +82,10 @@ async def search_shorten_links(
 
 
 @router.get("/{short_code}")
-@cache(expire=60)
 async def redirect_to_original_url(
     short_code: str,
     session: AsyncSession = Depends(get_async_session),
 ):  
-    sleep(5)
     query = select(ShortenLink).where(ShortenLink.alias == short_code)
     result = await session.execute(query)
     link = result.scalar_one_or_none()
@@ -138,7 +136,6 @@ async def update_shorten_link(
 @router.delete("/delete/{short_code}")
 async def delete_shorten_link(
     short_code: str,
-    response: Response,
     current_user: User = Depends(current_active_user),
     session: AsyncSession = Depends(get_async_session),
 ):
@@ -164,11 +161,13 @@ async def delete_shorten_link(
 
 
 @router.get("/{short_code}/stats")
+@cache(expire=60)
 async def get_shorten_link_stats(
     short_code: str,
     current_user: User = Depends(current_active_user),
     session: AsyncSession = Depends(get_async_session),
 ):
+    sleep(5)
     query = select(ShortenLink).where(ShortenLink.alias == short_code)
     result = await session.execute(query)
     link = result.scalar_one_or_none()
@@ -189,6 +188,29 @@ async def get_shorten_link_stats(
             clicks=link.clicks,
             last_clicked_at=link.last_clicked_at,
         )
+    
+
+@router.get(
+        "/my/{project}",
+        description="Получить все ссылки своего проекта"
+    )
+async def get_shorten_link_stats(
+    project: str,
+    current_user: User = Depends(current_active_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    query = select(ShortenLink).where(
+        and_(ShortenLink.project == project,
+        ShortenLink.user_id == current_user.id)
+    )
+    result = await session.execute(query)
+    links = result.scalars().all()
+    if not links:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Project not found",
+        )
+    return links
 
 
 async def is_alias_exists(session: AsyncSession, alias: str) -> bool:
