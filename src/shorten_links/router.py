@@ -77,9 +77,8 @@ async def create_shorten_link(
         datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=24),
         expires_at,
     )
-    print('add task')
     current_app.send_task(
-        "task.delete_link_if_expired",
+        "tasks.delete_link_if_expired",
         args=[new_shorten_link.alias],
         eta=delete_time,
     )
@@ -200,7 +199,9 @@ async def get_shorten_link_stats(
     short_code: str,
     current_user: User = Depends(current_active_user),
     session: AsyncSession = Depends(get_async_session),
-):
+):  
+    from time import sleep
+    sleep(5)
     link = await get_link_by_short_code(session, short_code)
     if link is None:
         raise HTTPException(

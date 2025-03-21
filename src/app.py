@@ -17,14 +17,14 @@ from src.shorten_links.router import router
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    cache = aioredis.Redis(
+    redis_app = aioredis.Redis(
         host="localhost", 
         port=6379,
         encoding="utf-8", 
         decode_responses=True,
-        db=0
+        db=1
     )
-    FastAPICache.init(RedisBackend(cache), prefix="fastapi-cache")
+    FastAPICache.init(RedisBackend(redis_app), prefix="fastapi-cache")
 
     yield
 
