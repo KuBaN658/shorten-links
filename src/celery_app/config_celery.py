@@ -11,8 +11,8 @@ from config import settings
 
 app = Celery(
     "tasks",  # Имя приложения
-    broker="redis://localhost:6378/0",  # Используем Redis как брокер
-    backend="redis://localhost:6378/0",  # Используем Redis для хранения результатов
+    broker=f"redis://{settings.redis.tasks_host}:6379/0", 
+    backend=f"redis://{settings.redis.tasks_host}:6379/0",
 )
 
 app.conf.update(

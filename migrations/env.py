@@ -5,8 +5,8 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from src.config import settings
-from src.models import Base as service_base
+from config import settings # type: ignore
+from models import Base as service_base # type: ignore
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

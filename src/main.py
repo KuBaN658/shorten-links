@@ -1,5 +1,4 @@
 from contextlib import asynccontextmanager
-from collections.abc import AsyncIterator
 from fastapi import FastAPI, Depends
 from fastapi_cache import FastAPICache
 from redis import asyncio as aioredis
@@ -14,12 +13,13 @@ from auth.user_manager import (
 from auth.schemas import UserCreate, UserRead
 from models import User
 from shorten_links.router import router
+from config import settings
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     redis_app = aioredis.Redis(
-        host="localhost", 
+        host=settings.redis.cache_host, 
         port=6379,
         encoding="utf-8", 
         decode_responses=True,

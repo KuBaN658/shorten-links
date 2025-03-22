@@ -1,0 +1,80 @@
+services:
+  db:
+    image: postgres:16
+    container_name: db_app
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    expose:
+      - ${DB_PORT}
+
+  # redis-cache:
+  #   image: redis:7
+  #   container_name: redis_cache
+  #   environment:
+  #     REDIS_PORT: 6379
+  #   expose:
+  #     - 6379
+
+  # redis-tasks:
+  #   image: redis:7
+  #   container_name: redis_tasks
+  #   environment:
+  #     REDIS_PORT: 6379
+  #   expose:
+  #     - 6379
+
+  app:
+    build:
+      context: .
+    container_name: fastapi_app
+    environment:
+      APP_CONFIG__DB__HOST: ${DB_HOST}
+      APP_CONFIG__DB__PORT: ${DB_PORT}
+      APP_CONFIG__DB__USER: ${DB_USER}
+      APP_CONFIG__DB__NAME: ${DB_NAME}
+      APP_CONFIG__DB__PASSWORD: ${DB_PASSWORD}
+      APP_CONFIG__ACCESS_TOKEN__RESET_PASSWORD_TOKEN_SECRET: ${ACCESS_TOKEN_RESET_PASSWORD_TOKEN_SECRET}
+      APP_CONFIG__ACCESS_TOKEN__VERIFICATION_TOKEN_SECRET: ${ACCESS_TOKEN_VERIFICATION_TOKEN_SECRET}
+      APP_CONFIG__REDIS__CACHE_HOST: ${REDIS_CACHE_HOST}
+      APP_CONFIG__REDIS__TASKS_HOST: ${REDIS_TASKS_HOST}
+    command: ["/fastapi_app/docker/app.sh"]
+    ports:
+      - 8000:8000
+    depends_on:
+      db:
+        condition: service_healthy
+      # redis-cache:
+      #   condition: service_started
+      # redis-tasks:
+      #   condition: service_started
+
+  # celery:
+  #   build:
+  #     context: .
+  #   container_name: celery_app
+  #   command: ["/fastapi_app/docker/celery.sh", "celery"]
+  #   depends_on:
+  #     app:
+  #       condition: service_started
+  #     redis-tasks:
+  #       condition: service_started
+
+  # flower:
+  #   build:
+  #     context: .
+  #   container_name: flower_app
+  #   command: ["/fastapi_app/docker/celery.sh", "flower"]
+  #   depends_on:
+  #     app:
+  #       condition: service_started
+  #     celery:
+  #       condition: service_started
+  #   ports:
+  #     - 5555:5555

@@ -15,15 +15,22 @@ class AccessToken(BaseModel):
     reset_password_token_secret: str
     verification_token_secret: str
 
+
 class LifeTimeLinks(BaseModel):
     without_clicks: int = 60
     default_with_clicks: int = 60 * 5
+
+
+class RedisConfig(BaseModel):
+    cache_host: str
+    tasks_host: str
 
 
 class Settings(BaseSettings):
     db: DatabaseConfig
     access_token: AccessToken
     life_time_links: LifeTimeLinks = LifeTimeLinks()
+    redis: RedisConfig
 
     model_config = SettingsConfigDict(
         env_file=".env",
