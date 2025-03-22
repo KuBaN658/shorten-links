@@ -1,11 +1,12 @@
 from typing import Optional
 from datetime import datetime
 from pydantic import BaseModel
+from config import settings
 
 
 class ShortenLinkCreate(BaseModel):
     url: str
-    lifetime_hours: int = 24
+    lifetime_seconds: int = settings.life_time_links.default_with_clicks
     description: str
     alias: Optional[str] = None
     project: Optional[str] = None

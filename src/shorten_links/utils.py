@@ -3,7 +3,7 @@ import random
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from src.models import ShortenLink
+from models import ShortenLink
 
 
 def generate_alias(url: str) -> str:

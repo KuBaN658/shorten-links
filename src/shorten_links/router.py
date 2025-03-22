@@ -6,16 +6,19 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi_cache.decorator import cache
-from celery import current_app
+from celery.result import AsyncResult
 
-from src.models import ShortenLink
-from src.database import get_async_session
-from src.shorten_links.schemas import ShortenLinkCreate, UrlUpdate
-from src.auth.user_manager import current_active_user, current_active_user_optional
-from src.models import User
-from src.shorten_links.utils import generate_alias
-from src.shorten_links.schemas import Stats
-from src.shorten_links.utils import get_link_by_short_code
+from celery_app.config_celery import app
+from models import ShortenLink
+from database import get_async_session
+from shorten_links.schemas import ShortenLinkCreate, UrlUpdate
+from auth.user_manager import current_active_user, current_active_user_optional
+from models import User
+from shorten_links.utils import generate_alias
+from shorten_links.schemas import Stats
+from shorten_links.utils import get_link_by_short_code
+from celery_app.config_celery import delete_link_if_expired
+from config import settings
 
 router = APIRouter()
 
@@ -57,32 +60,34 @@ async def create_shorten_link(
     if not shorten_link.url.startswith("http"):
         shorten_link.url = "https://" + shorten_link.url
     expires_at = datetime.now(timezone.utc) + timedelta(
-        hours=shorten_link.lifetime_hours
+        seconds=shorten_link.lifetime_seconds
     )
     expires_at = expires_at.replace(tzinfo=None)
     user_id = current_user if current_user is None else current_user.id
+
+    delete_time = min(
+        datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(seconds=60),
+        expires_at,
+    )
+
+    task = delete_link_if_expired.apply_async(
+        args=[shorten_link.alias], eta=delete_time
+    )
+
     new_shorten_link = ShortenLink(
         url=shorten_link.url,
         alias=shorten_link.alias,
         expires_at=expires_at,
         user_id=user_id,
         project=shorten_link.project,
+        task_id=task.id,
     )
+
     session.add(new_shorten_link)
     await session.commit()
     await session.refresh(new_shorten_link)
+
     response.status_code = status.HTTP_201_CREATED
-
-    delete_time = min(
-        datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=24),
-        expires_at,
-    )
-    current_app.send_task(
-        "tasks.delete_link_if_expired",
-        args=[new_shorten_link.alias],
-        eta=delete_time,
-    )
-
     return {
         "status": "Shorten_link created",
         "saved_link": new_shorten_link,
@@ -97,7 +102,6 @@ async def search_shorten_links(
 ):
     if not original_url.startswith("http"):
         original_url = "https://" + original_url
-    print(original_url)
     query = select(ShortenLink).where(ShortenLink.url == original_url)
     result = await session.execute(query)
     return result.scalars().all()
@@ -121,18 +125,21 @@ async def redirect_to_original_url(
     last_clicked_at = datetime.now(timezone.utc)
     last_clicked_at = last_clicked_at.replace(tzinfo=None)
     link.last_clicked_at = last_clicked_at
-    await session.commit()
 
     delete_time = min(
-        datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=1),
+        datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(seconds=60),
         link.expires_at,
     )
 
-    current_app.send_task(
-        "tasks.delete_link_if_expired",
-        args=[link.id],
-        eta=delete_time,
+    AsyncResult(link.task_id).revoke(terminate=True)
+
+    task = delete_link_if_expired.apply_async(
+        args=[link.alias], eta=delete_time
     )
+
+    link.task_id = task.id
+    await session.commit()
+    await session.refresh(link)
 
     return RedirectResponse(link.url, status_code=307)
 

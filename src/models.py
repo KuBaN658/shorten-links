@@ -1,10 +1,15 @@
 from datetime import datetime
 from typing import Optional
 
+from fastapi import Depends
+from fastapi_users.db import SQLAlchemyUserDatabase
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import func, DateTime, String, ForeignKey, Text
 from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
 from fastapi_users.db import SQLAlchemyBaseUserTableUUID
+
+from database import get_async_session
 
 Base: DeclarativeMeta = declarative_base()
 
@@ -15,6 +20,9 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
         server_default=func.now(),
         nullable=False,
     )
+
+async def get_user_db(session: AsyncSession = Depends(get_async_session)):
+    yield SQLAlchemyUserDatabase(session, User)
 
 
 class ShortenLink(Base):
@@ -57,6 +65,11 @@ class ShortenLink(Base):
     project: Mapped[Optional[str]] = mapped_column(
         String(255),
         nullable=True,
+    )
+
+    task_id: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
     )
 
 

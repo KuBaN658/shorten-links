@@ -4,15 +4,16 @@ from fastapi import FastAPI, Depends
 from fastapi_cache import FastAPICache
 from redis import asyncio as aioredis
 from fastapi_cache.backends.redis import RedisBackend
+import uvicorn
 
-from src.auth.user_manager import (
+from auth.user_manager import (
     auth_backend,
     current_active_user,
     fastapi_users_router,
 )
-from src.auth.schemas import UserCreate, UserRead
-from src.auth.models import User
-from src.shorten_links.router import router
+from auth.schemas import UserCreate, UserRead
+from models import User
+from shorten_links.router import router
 
 
 @asynccontextmanager
@@ -22,7 +23,7 @@ async def lifespan(_: FastAPI):
         port=6379,
         encoding="utf-8", 
         decode_responses=True,
-        db=1
+        db=0
     )
     FastAPICache.init(RedisBackend(redis_app), prefix="fastapi-cache")
 
@@ -57,3 +58,11 @@ def protected_route(user: User = Depends(current_active_user)):
 @app.get("/unprotected-route")
 def unprotected_route():
     return f"Hello, anonym"
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "main:app",
+        host="localhost",
+        log_level="info",
+        reload=True,
+    )

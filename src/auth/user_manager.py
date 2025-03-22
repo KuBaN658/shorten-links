@@ -11,8 +11,8 @@ from fastapi_users.authentication import (
 )
 from fastapi_users.db import SQLAlchemyUserDatabase
 
-from src.auth.models import User, get_user_db
-from src.config import settings
+from models import User, get_user_db
+from config import settings
 
 logger.add("logs/auth.log", rotation="10 MB", compression="zip")
 
