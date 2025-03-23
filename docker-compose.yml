@@ -13,22 +13,29 @@ services:
       retries: 5
     expose:
       - ${DB_PORT}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
-  # redis-cache:
-  #   image: redis:7
-  #   container_name: redis_cache
-  #   environment:
-  #     REDIS_PORT: 6379
-  #   expose:
-  #     - 6379
+  redis-cache:
+    image: redis:7
+    container_name: redis_cache
+    environment:
+      REDIS_PORT: 6379
+    expose:
+      - 6379
+    volumes:
+      - redis_cache_data:/data
 
-  # redis-tasks:
-  #   image: redis:7
-  #   container_name: redis_tasks
-  #   environment:
-  #     REDIS_PORT: 6379
-  #   expose:
-  #     - 6379
+  
+  redis-tasks:
+    image: redis:7
+    container_name: redis_tasks
+    environment:
+      REDIS_PORT: 6379
+    expose:
+      - 6379
+    volumes:
+      - redis_tasks_data:/data
 
   app:
     build:
@@ -44,37 +51,19 @@ services:
       APP_CONFIG__ACCESS_TOKEN__VERIFICATION_TOKEN_SECRET: ${ACCESS_TOKEN_VERIFICATION_TOKEN_SECRET}
       APP_CONFIG__REDIS__CACHE_HOST: ${REDIS_CACHE_HOST}
       APP_CONFIG__REDIS__TASKS_HOST: ${REDIS_TASKS_HOST}
-    command: ["/fastapi_app/docker/app.sh"]
+    command: >
+      sh -c "/fastapi_app/docker/app.sh & /fastapi_app/docker/celery.sh"
     ports:
       - 8000:8000
     depends_on:
       db:
         condition: service_healthy
-      # redis-cache:
-      #   condition: service_started
-      # redis-tasks:
-      #   condition: service_started
+      redis-cache:
+        condition: service_started
+      redis-tasks:
+        condition: service_started
 
-  # celery:
-  #   build:
-  #     context: .
-  #   container_name: celery_app
-  #   command: ["/fastapi_app/docker/celery.sh", "celery"]
-  #   depends_on:
-  #     app:
-  #       condition: service_started
-  #     redis-tasks:
-  #       condition: service_started
-
-  # flower:
-  #   build:
-  #     context: .
-  #   container_name: flower_app
-  #   command: ["/fastapi_app/docker/celery.sh", "flower"]
-  #   depends_on:
-  #     app:
-  #       condition: service_started
-  #     celery:
-  #       condition: service_started
-  #   ports:
-  #     - 5555:5555
+volumes:
+  postgres_data:
+  redis_cache_data:
+  redis_tasks_data:

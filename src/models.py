@@ -87,7 +87,6 @@ class OldShortenLink(Base):
     )
     alias: Mapped[str] = mapped_column(
         String(255),
-        unique=True,
         nullable=False,
     )
     created_at: Mapped[datetime] = mapped_column(

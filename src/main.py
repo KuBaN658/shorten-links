@@ -55,14 +55,14 @@ def protected_route(user: User = Depends(current_active_user)):
     return f"Hello, {user.email}"
 
 
-@app.get("/unprotected-route")
-def unprotected_route():
-    return f"Hello, anonym"
+@app.get("/health")
+def check_health():
+    return {"status": "ok"}
 
-if __name__ == "__main__":
-    uvicorn.run(
-        "main:app",
-        host="localhost",
-        log_level="info",
-        reload=True,
-    )
+# if __name__ == "__main__":
+#     uvicorn.run(
+#         "main:app",
+#         host="localhost",
+#         log_level="info",
+#         reload=True,
+#     )
