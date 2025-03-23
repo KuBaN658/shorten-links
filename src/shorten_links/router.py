@@ -162,6 +162,8 @@ async def update_shorten_link(
             detail=f"Permission denied",
         )
     else:
+        if not update_link.url.startswith("http"):
+            update_link.url = "https://" + update_link.url
         link.url = update_link.url
         await session.commit()
         await session.refresh(link)
