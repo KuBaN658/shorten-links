@@ -49,20 +49,6 @@ app.include_router(
     tags=["links"],
 )
 
-
-@app.get("/protected-route")
-def protected_route(user: User = Depends(current_active_user)):
-    return f"Hello, {user.email}"
-
-
 @app.get("/health")
 def check_health():
     return {"status": "ok"}
-
-# if __name__ == "__main__":
-#     uvicorn.run(
-#         "main:app",
-#         host="localhost",
-#         log_level="info",
-#         reload=True,
-#     )

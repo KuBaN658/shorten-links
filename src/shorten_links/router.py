@@ -3,13 +3,12 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException, status, Depends, Response
 from fastapi.responses import RedirectResponse
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi_cache.decorator import cache
 from celery.result import AsyncResult
 
-from celery_app.config_celery import app
-from models import ShortenLink
+from models import ShortenLink, OldShortenLink
 from database import get_async_session
 from shorten_links.schemas import ShortenLinkCreate, UrlUpdate
 from auth.user_manager import current_active_user, current_active_user_optional
@@ -190,6 +189,16 @@ async def delete_shorten_link(
             detail=f"Permission denied",
         )
     else:
+        await session.execute(
+            insert(OldShortenLink).values(
+                    url=link.url,
+                    created_at=link.created_at,
+                    alias=link.alias,
+                    user_id=link.user_id,
+                    deleted_at=datetime.now(timezone.utc).replace(tzinfo=None),
+                )
+            )
+        AsyncResult(link.task_id).revoke(terminate=True)
         await session.delete(link)
         await session.commit()
         return Response(
@@ -207,8 +216,6 @@ async def get_shorten_link_stats(
     current_user: User = Depends(current_active_user),
     session: AsyncSession = Depends(get_async_session),
 ):  
-    from time import sleep
-    sleep(5)
     link = await get_link_by_short_code(session, short_code)
     if link is None:
         raise HTTPException(
@@ -230,7 +237,7 @@ async def get_shorten_link_stats(
 
 
 @router.get("/my/{project}", description="Получить все ссылки своего проекта")
-async def get_shorten_link_stats(
+async def get_links_by_project(
     project: str,
     current_user: User = Depends(current_active_user),
     session: AsyncSession = Depends(get_async_session),
@@ -246,3 +253,16 @@ async def get_shorten_link_stats(
             detail=f"Project not found",
         )
     return links
+
+
+@router.get("/history/old_links", description="Получить все устаревшие ссылки")
+async def get_old_links(
+    current_user: User = Depends(current_active_user),
+    session: AsyncSession = Depends(get_async_session),
+):
+    query = select(OldShortenLink).where(
+        and_(OldShortenLink.user_id == current_user.id, 
+             OldShortenLink.user_id == current_user.id)
+    )
+    result = await session.execute(query)
+    return result.scalars().all()
