@@ -93,7 +93,7 @@ async def create_shorten_link(
     }
 
 
-@router.get("/search", description="Поиск всех коротких ссылок по оригинальному URL")
+@router.get("/search", description="Поиск всех коротких ссылок по оригинальному URL, результат кэшируется")
 @cache(expire=60)
 async def search_shorten_links(
     original_url: str,
@@ -107,8 +107,9 @@ async def search_shorten_links(
 
 
 @router.get(
-    "/{short_code}", description="Перенаправляет пользователя на оригинальный URL"
+    "/{short_code}", description="Перенаправляет пользователя на оригинальный URL, результат кэшируется"
 )
+@cache(expire=60)
 async def redirect_to_original_url(
     short_code: str,
     session: AsyncSession = Depends(get_async_session),
@@ -210,9 +211,8 @@ async def delete_shorten_link(
 
 @router.get(
     "/{short_code}/stats",
-    description="Получить статистику по короткой ссылке, эндпоинт кэшируется",
+    description="Получить статистику по короткой ссылке",
 )
-@cache(expire=60)
 async def get_shorten_link_stats(
     short_code: str,
     current_user: User = Depends(current_active_user),
