@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from sqlalchemy import insert, select
 from celery import Celery
 from loguru import logger

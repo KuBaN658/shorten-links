@@ -1,16 +1,14 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 from fastapi_cache import FastAPICache
 from redis import asyncio as aioredis
 from fastapi_cache.backends.redis import RedisBackend
 
 from auth.user_manager import (
     auth_backend,
-    current_active_user,
     fastapi_users_router,
 )
 from auth.schemas import UserCreate, UserRead
-from models import User
 from shorten_links.router import router
 from config import settings
 
