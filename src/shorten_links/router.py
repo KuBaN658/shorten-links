@@ -7,6 +7,7 @@ from sqlalchemy import select, and_, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi_cache.decorator import cache
 from celery.result import AsyncResult
+from fastapi_cache import FastAPICache
 
 from models import ShortenLink, OldShortenLink
 from database import get_async_session
@@ -18,6 +19,7 @@ from shorten_links.schemas import Stats
 from shorten_links.utils import get_link_by_short_code
 from celery_app.config_celery import delete_link_if_expired
 from config import settings
+from shorten_links.utils import delete_cache
 
 router = APIRouter()
 
@@ -167,8 +169,11 @@ async def update_shorten_link(
             detail=f"Permission denied",
         )
     else:
+
         if not update_link.url.startswith("http"):
             update_link.url = "https://" + update_link.url
+
+        await delete_cache(link)
         link.url = update_link.url
         await session.commit()
         await session.refresh(link)
@@ -205,6 +210,8 @@ async def delete_shorten_link(
                 deleted_at=datetime.now(timezone.utc).replace(tzinfo=None),
             )
         )
+        await delete_cache(link)
+
         AsyncResult(link.task_id).revoke(terminate=True)
         await session.delete(link)
         await session.commit()
