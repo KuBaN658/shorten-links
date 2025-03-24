@@ -29,7 +29,7 @@ class RedisConfig(BaseModel):
 class Settings(BaseSettings):
     db: DatabaseConfig
     access_token: AccessToken
-    life_time_links: LifeTimeLinks = LifeTimeLinks()
+    life_time_links: LifeTimeLinks
     redis: RedisConfig
 
     model_config = SettingsConfigDict(

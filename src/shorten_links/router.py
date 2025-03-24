@@ -65,7 +65,7 @@ async def create_shorten_link(
     user_id = current_user if current_user is None else current_user.id
 
     delete_time = min(
-        datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(seconds=60),
+        datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(seconds=settings.life_time_links.without_clicks),
         expires_at,
     )
 
@@ -127,7 +127,7 @@ async def redirect_to_original_url(
     link.last_clicked_at = last_clicked_at
 
     delete_time = min(
-        datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(seconds=60),
+        datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(seconds=settings.life_time_links.without_clicks),
         link.expires_at,
     )
 
