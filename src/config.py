@@ -17,8 +17,8 @@ class AccessToken(BaseModel):
 
 
 class LifeTimeLinks(BaseModel):
-    without_clicks: int = 60
-    default_with_clicks: int = 60 * 5
+    without_clicks: int
+    default_with_clicks: int
 
 
 class RedisConfig(BaseModel):
