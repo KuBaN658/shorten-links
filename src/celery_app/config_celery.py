@@ -30,21 +30,12 @@ app.conf.update(
 def delete_link_if_expired(short_code: str):
     with session_maker() as session:
         # Получаем ссылку
-        logger.info("Получаем ссылку")
         query = select(ShortenLink).where(ShortenLink.alias == short_code)
         link = session.execute(query).scalar_one_or_none()
         if link is None:
-            logger.info("Ссылка не найдена")
             return  # Ссылка уже удалена
 
         now = datetime.now(timezone.utc).replace(tzinfo=None)
-        logger.info(f"текущее время: {now}")
-        # if link.expires_at <= now or (
-        #     link.last_clicked_at
-        #     and (now - link.last_clicked_at)
-        #     > timedelta(seconds=settings.life_time_links.without_clicks)
-        # ):
-        logger.info(f"ссылка просрочена: {link.expires_at}")
         # Копируем ссылку в OldShortenLink
         session.execute(
             insert(OldShortenLink).values(
@@ -53,6 +44,9 @@ def delete_link_if_expired(short_code: str):
                 alias=link.alias,
                 user_id=link.user_id,
                 deleted_at=now,
+                clicks=link.clicks,
+                last_clicked_at=link.last_clicked_at,
+                project=link.project,
             )
         )
             
