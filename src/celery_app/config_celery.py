@@ -9,8 +9,8 @@ from config import settings
 
 app = Celery(
     "tasks",  # Имя приложения
-    broker=f"redis://{settings.redis.tasks_host}:6379/0", 
-    backend=f"redis://{settings.redis.tasks_host}:6379/1"
+    broker=f"redis://{settings.redis.tasks_host}:6379/0",
+    backend=f"redis://{settings.redis.tasks_host}:6379/1",
 )
 
 app.conf.update(
@@ -49,7 +49,7 @@ def delete_link_if_expired(short_code: str):
                 project=link.project,
             )
         )
-            
+
         # Удаляем ссылку из основной таблицы
         session.delete(link)
         session.commit()

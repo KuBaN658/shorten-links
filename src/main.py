@@ -3,7 +3,6 @@ from fastapi import FastAPI, Depends
 from fastapi_cache import FastAPICache
 from redis import asyncio as aioredis
 from fastapi_cache.backends.redis import RedisBackend
-import uvicorn
 
 from auth.user_manager import (
     auth_backend,
@@ -19,11 +18,11 @@ from config import settings
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     redis_app = aioredis.Redis(
-        host=settings.redis.cache_host, 
+        host=settings.redis.cache_host,
         port=6379,
-        encoding="utf-8", 
+        encoding="utf-8",
         decode_responses=True,
-        db=0
+        db=0,
     )
     FastAPICache.init(RedisBackend(redis_app), prefix="fastapi-cache")
 
@@ -48,6 +47,7 @@ app.include_router(
     prefix="/links",
     tags=["links"],
 )
+
 
 @app.get("/health")
 def check_health():

@@ -65,7 +65,8 @@ async def create_shorten_link(
     user_id = current_user if current_user is None else current_user.id
 
     delete_time = min(
-        datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(seconds=settings.life_time_links.without_clicks),
+        datetime.now(timezone.utc).replace(tzinfo=None)
+        + timedelta(seconds=settings.life_time_links.without_clicks),
         expires_at,
     )
 
@@ -93,7 +94,10 @@ async def create_shorten_link(
     }
 
 
-@router.get("/search", description="Поиск всех коротких ссылок по оригинальному URL, результат кэшируется")
+@router.get(
+    "/search",
+    description="Поиск всех коротких ссылок по оригинальному URL, результат кэшируется",
+)
 @cache(expire=60)
 async def search_shorten_links(
     original_url: str,
@@ -107,7 +111,8 @@ async def search_shorten_links(
 
 
 @router.get(
-    "/{short_code}", description="Перенаправляет пользователя на оригинальный URL, результат кэшируется"
+    "/{short_code}",
+    description="Перенаправляет пользователя на оригинальный URL, результат кэшируется",
 )
 @cache(expire=60)
 async def redirect_to_original_url(
@@ -127,15 +132,14 @@ async def redirect_to_original_url(
     link.last_clicked_at = last_clicked_at
 
     delete_time = min(
-        datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(seconds=settings.life_time_links.without_clicks),
+        datetime.now(timezone.utc).replace(tzinfo=None)
+        + timedelta(seconds=settings.life_time_links.without_clicks),
         link.expires_at,
     )
 
     AsyncResult(link.task_id).revoke(terminate=True)
 
-    task = delete_link_if_expired.apply_async(
-        args=[link.alias], eta=delete_time
-    )
+    task = delete_link_if_expired.apply_async(args=[link.alias], eta=delete_time)
 
     link.task_id = task.id
     await session.commit()
@@ -194,13 +198,13 @@ async def delete_shorten_link(
     else:
         await session.execute(
             insert(OldShortenLink).values(
-                    url=link.url,
-                    created_at=link.created_at,
-                    alias=link.alias,
-                    user_id=link.user_id,
-                    deleted_at=datetime.now(timezone.utc).replace(tzinfo=None),
-                )
+                url=link.url,
+                created_at=link.created_at,
+                alias=link.alias,
+                user_id=link.user_id,
+                deleted_at=datetime.now(timezone.utc).replace(tzinfo=None),
             )
+        )
         AsyncResult(link.task_id).revoke(terminate=True)
         await session.delete(link)
         await session.commit()
@@ -217,7 +221,7 @@ async def get_shorten_link_stats(
     short_code: str,
     current_user: User = Depends(current_active_user),
     session: AsyncSession = Depends(get_async_session),
-):  
+):
     link = await get_link_by_short_code(session, short_code)
     if link is None:
         raise HTTPException(
@@ -263,8 +267,10 @@ async def get_old_links(
     session: AsyncSession = Depends(get_async_session),
 ):
     query = select(OldShortenLink).where(
-        and_(OldShortenLink.user_id == current_user.id, 
-             OldShortenLink.user_id == current_user.id)
+        and_(
+            OldShortenLink.user_id == current_user.id,
+            OldShortenLink.user_id == current_user.id,
+        )
     )
     result = await session.execute(query)
     return result.scalars().all()
